@@ -16,7 +16,6 @@ function Input:Setup()
     self.value = self.a.value or ""
     self.placeholder = self.a.placeholder or "enter text..."
     self.limit = self.a.limit or {}
-    if not self.limit.chars then self.limit.chars = "abcdefghijklmnopqrstuvwxyz 0123456789" end
 end
 function Input:Modified()
     self.v.base = self.s:CreateStyle(self,self.t,{"base"})
@@ -35,8 +34,14 @@ end
 
 function Input:Focus()
     self.cursor, self.cursorblink = #self.value, 0
+    self.oldvalue = self.value
 end
 function Input:Unfocus()
+    if self.validation and self.valid == false then
+        self.value = self.oldvalue
+        self:CheckValidation()
+        return
+    end
     if self.callback then self.callback(self) end
 end
 
@@ -71,6 +76,7 @@ function Input:Input(key,text)
         self.cursor, self.value = oldcursor, oldvalue
     elseif oldcursor ~= self.cursor then
         self.cursorblink = 0
+        self:CheckValidation()
     end
 end
 function Input:InputText(text)
@@ -79,8 +85,27 @@ end
 
 ---------------------------------------------------------------------
 
-function Input:GetValue()
+function Input:GetValue(idx,display)
+    if display and self.limit.password then
+        local char = "*"
+        if type(self.limit.password) == "string" then char = self.limit.password:sub(1,1) end
+        return char:rep(#self.value)
+    end
     return self.value
+end
+
+function Input:SetValidation(func)
+    self.validation = func
+    self:CheckValidation()
+    return self
+end
+function Input:CheckValidation()
+    if self.validation then
+        self.valid = false
+        if self.validation(self.value,self) then
+            self.valid = true
+        end
+    end
 end
 
 return Input

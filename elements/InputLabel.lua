@@ -16,6 +16,7 @@ function InputLabel:Setup()
 end
 function InputLabel:Modified()
     self.v.text = self.s:CreateStyle(self,self.t,{"text"})
+    self.v.texterror = self.s:CreateStyle(self,self.t,{"texterror","text"})
     self.v.place = self.s:CreateStyle(self,self.t,{"placeholder","text"})
 
     local _,_,w,_ = self.s:GetSizeText(self,self.t,self.text)
@@ -27,7 +28,7 @@ function InputLabel:Update(dt)
     if (not self.parent._focus) and self.parent.value == "" then
         self.text = self.parent.placeholder
     else
-        self.text = self.parent.value
+        self.text = self.parent:GetValue(nil,true) -- for password
     end
     if oldtext ~= self.text then
         self:Modified()
@@ -45,7 +46,11 @@ function InputLabel:Draw()
     if (not self.parent._focus) and self.parent.value == "" then
         self.s:DrawText(self,self.t:Offset({x=-scrollx}),self.v.place,self:GetVariant(),self.s:GetState(self),self.text)
     else
-        self.s:DrawText(self,self.t:Offset({x=-scrollx}),self.v.text,self:GetVariant(),self.s:GetState(self),self.text)
+        if self.parent.validation and self.parent.valid == false then
+            self.s:DrawText(self,self.t:Offset({x=-scrollx}),self.v.texterror,self:GetVariant(),self.s:GetState(self),self.text)
+        else
+            self.s:DrawText(self,self.t:Offset({x=-scrollx}),self.v.text,self:GetVariant(),self.s:GetState(self),self.text)
+        end
     end
     if self.parent._focus and self.parent.cursorblink < 0.5 then
         local x,y,_,h = self.s:GetSizeText(self,self.t,self.text)
@@ -55,7 +60,8 @@ function InputLabel:Draw()
 end
 
 function InputLabel:GetBounds()
-    return self.s:GetSizeText(self,self.t,self.text)
+    local x,y,w,h = self.s:GetSizeText(self,self.t,self.text)
+    return x-self.scrollx,y,w,h
 end
 
 return InputLabel

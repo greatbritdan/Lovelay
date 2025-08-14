@@ -149,7 +149,15 @@ end
 ---------------------------------------------------------------------
 
 function Base:BaseAdd(element)
+    if not element then
+        error("Lovelay.Base: Cannot add element, type is missing or nil")
+    end
+    if element.type == "Panel" then
+        error("Lovelay.Base: Cannot add Panel inside other elements, Add to group instead")
+    end
     table.insert(self.children, element); element.parent = self
+    if element.Added then element:Added("parent") end
+    if self.g then element.g = self.g end
     self:BaseModified()
     return self
 end
@@ -208,6 +216,7 @@ function Base:SetCallback(callback)
     end
     return self
 end
+function Base:SetTooltip(text) self.tooltip = text; return self end
 
 function Base:Enable() self.active = true; return self end
 function Base:Disable() self.active = false; return self end

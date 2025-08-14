@@ -12,8 +12,10 @@ local Slider = require(_LOVELAY_REQUIRE_PATH..".elements.Slider")
 local Input =  require(_LOVELAY_REQUIRE_PATH..".elements.Input")
 local Layout = require(_LOVELAY_REQUIRE_PATH..".elements.Layout")
 local Panel =  require(_LOVELAY_REQUIRE_PATH..".elements.Panel")
+local Option = require(_LOVELAY_REQUIRE_PATH..".elements.Option")
 
 local InputLabel = require(_LOVELAY_REQUIRE_PATH..".elements.InputLabel")
+local Tooltip = require(_LOVELAY_REQUIRE_PATH..".elements.Tooltip")
 
 ----------------------------------------------------------------
 
@@ -25,23 +27,44 @@ function Core:initialize()
     self.groups = {}
 
     self.currentstyle = nil
+    
+    self.tooltip = nil
+    self.tooltipelement = nil
 end
 
 function Core:Update(dt)
     self:ResetHover()
     Utils.ForEach(self.groups,function(group) group:Update(dt) end,true)
+    self.tooltip:Update(dt)
+
+    if (not self.tooltipelement) and self.hover and self.hover.tooltip then
+        self:UpdateTooltip(self.hover.tooltip)
+    end
+    if (self.tooltipelement) and self.hover ~= self.tooltipelement then
+        self:UpdateTooltip()
+    end
 end
 
 function Core:Draw(debug)
     local oldfont, oldcolor = love.graphics.getFont(), {love.graphics.getColor()}
+    local x,y,w,h = love.graphics.getScissor()
+    if x then
+        love.graphics.setScissor()
+        Utils.ScissorPush(x,y,w,h)
+    end
+    
     love.graphics.push()
     love.graphics.scale(_LOVELAY_SETTINGS.scale)
 
     Utils.ForEach(self.groups,function(group) group:Draw(debug) end)
+    self.tooltip:BaseDraw()
+    if debug then self.tooltip:DebugDraw() end
 
     love.graphics.pop()
     love.graphics.setFont(oldfont)
     love.graphics.setColor(oldcolor)
+
+    Utils.ScissorPop()
 end
 
 function Core:Mousepressed(_,_,b)
@@ -115,6 +138,22 @@ function Core:SetStyle(key)
         error("Lovelay.Core: Style with key '"..key.."' does not exist, use Core:NewStyle(<path>,<key>) to create a new style.")
     end
     self.currentstyle = style
+    if not self.tooltip then
+        self.tooltip = Tooltip:new(self)
+    else
+        self.tooltip.s = self.style; self.tooltip:BaseModified()
+    end
+end
+
+function Core:UpdateTooltip(text)
+    if text == nil then
+        self.tooltip.timer = nil
+        self.tooltipelement = nil
+    else
+        self.tooltip.queuetext = text
+        self.tooltip.timer = 0
+        self.tooltipelement = self.hover
+    end
 end
 
 --- Group ------------------------------------------------------
@@ -127,7 +166,7 @@ end
 
 --- Elements --------------------------------------------------- 
 
-local types = {base=Base, button=Button, label=Label, image=Image, cycle=Cycle, toggle=Toggle, slider=Slider, input=Input, inputlabel=InputLabel, layout=Layout, panel=Panel}
+local types = {base=Base, button=Button, label=Label, image=Image, cycle=Cycle, toggle=Toggle, slider=Slider, input=Input, inputlabel=InputLabel, layout=Layout, panel=Panel, option=Option}
 function Core:Element(type,transform,arguments)
     if not self.currentstyle then
         error("Lovelay.Core: No style set, use Core:SetStyle(<key>) to set a style before creating elements.")
@@ -146,7 +185,8 @@ function Core:Toggle(transform,arguments) return self:Element("toggle",transform
 function Core:Slider(transform,arguments) return self:Element("slider",transform,arguments) end
 function Core:Input(transform,arguments)  return self:Element("input",transform,arguments)  end
 function Core:Layout(transform,arguments) return self:Element("layout",transform,arguments) end
-function Core:Panel(transform,arguments)  return self:Element("panel",transform,arguments) end
+function Core:Panel(transform,arguments)  return self:Element("panel",transform,arguments)  end
+function Core:Option(transform,arguments) return self:Element("option",transform,arguments) end
 
 -- INTERNAL USE ONLY!
 function Core:InputLabel(transform,arguments)  return self:Element("inputlabel",transform,arguments)  end

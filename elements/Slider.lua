@@ -30,12 +30,15 @@ end
 function Slider:Modified()
     if self.dir == "hor" then
         self.tb = Transform:new({self.t.x+self.marginx, self.t.y+self.marginy, self.fill, self._eh})
+        self.tf = Transform:new({self.t.x+self.marginx, self.t.y+self.marginy, self._ew, self._eh})
     else
         self.tb = Transform:new({self.t.x+self.marginx, self.t.y+self.marginy, self._ew, self.fill})
+        self.tf = Transform:new({self.t.x+self.marginx, self.t.y+self.marginy, self._ew, self._eh})
     end
 
     self.v.base = self.s:CreateStyle(self,self.t,{"base"})
     self.v.bulb = self.s:CreateStyle(self,self.tb,{"bulb","base"})
+    self.v.fill = self.s:CreateStyle(self,self.tf,{"fill"})
 end
 
 function Slider:Update(dt)
@@ -55,12 +58,23 @@ function Slider:Update(dt)
 end
 
 function Slider:Draw()
-    self.s:DrawBase(self,self.t,self.v.base,self:GetVariant(),self.s:GetState(self))
     if self.dir == "hor" then
         local offset = ((self.value - self.limit.min) / (self.limit.max-self.limit.min) * (self._ew-self.fill))
+        if self.v.fill then
+            Utils.ScissorPush(self.tf.x*_LOVELAY_SETTINGS.scale, self.tf.y*_LOVELAY_SETTINGS.scale, (offset+(self.fill/2))*_LOVELAY_SETTINGS.scale, self._eh*_LOVELAY_SETTINGS.scale)
+            self.s:DrawBase(self,self.tf,self.v.fill,self:GetVariant(),self.s:GetState(self))
+            Utils.ScissorPop()
+        end
+        self.s:DrawBase(self,self.t,self.v.base,self:GetVariant(),self.s:GetState(self))
         self.s:DrawBase(self,self.tb:Offset({x=offset}),self.v.bulb,self:GetVariant(),self.s:GetState(self))
     else
         local offset = ((self.value - self.limit.min) / (self.limit.max-self.limit.min) * (self._eh-self.fill))
+        if self.v.fill then
+            Utils.ScissorPush(self.tf.x*_LOVELAY_SETTINGS.scale, self.tf.y*_LOVELAY_SETTINGS.scale, self._ew*_LOVELAY_SETTINGS.scale, (offset+(self.fill/2))*_LOVELAY_SETTINGS.scale)
+            self.s:DrawBase(self,self.tf,self.v.fill,self:GetVariant(),self.s:GetState(self))
+            Utils.ScissorPop()
+        end
+        self.s:DrawBase(self,self.t,self.v.base,self:GetVariant(),self.s:GetState(self))
         self.s:DrawBase(self,self.tb:Offset({y=offset}),self.v.bulb,self:GetVariant(),self.s:GetState(self))
     end
 end

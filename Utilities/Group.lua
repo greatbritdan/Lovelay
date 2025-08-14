@@ -52,6 +52,7 @@ function Group:Add(element)
         element.g:Remove(element)
     end
     table.insert(self.elements, element); element.g = self
+    if element.Added then element:Added("group") end
     return self
 end
 function Group:Remove(element)

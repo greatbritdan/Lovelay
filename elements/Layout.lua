@@ -91,6 +91,13 @@ end
 ---------------------------------------------------------------------
 
 function Layout:Add(element)
+    if not element then
+        error("Lovelay.Base: Cannot add element, type is missing or nil")
+    end
+    if element.type == "Panel" then
+        error("Lovelay.Base: Cannot add Panel inside other elements, Add to group instead")
+    end
+
     if not self.layout[self.layoutat.anchor] then
         self.layout[self.layoutat.anchor] = {{}}
     end
@@ -101,6 +108,8 @@ function Layout:Add(element)
     end
     table.insert(self.layout[self.layoutat.anchor][length],element)
     table.insert(self.children,element); element.parent = self
+    if element.Added then element:Added("parent") end
+    if self.g then element.g = self.g end
     return self
 end
 function Layout:End() self:Calculate(); return self end

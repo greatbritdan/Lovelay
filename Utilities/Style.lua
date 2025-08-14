@@ -40,7 +40,7 @@ function Style.GenerateStyle(path,cs)
     local iw,ih = image:getWidth(), image:getHeight()
     cs = cs or 1
     local qs = 1+cs*2
-    local vqs, hqs = iw/qs, ih/qs
+    local hqs, vqs = iw/qs, ih/qs
 
     local createquadgroup = function(sx,sy)
         return {
@@ -146,15 +146,22 @@ function Style:GetAllignY(y,h,fullh,allign,margin)
     end
     return y
 end
+function Style:LineCount(element,text)
+    local _,lines = element.font:getWrap(text,99e99)
+    return #lines
+end
 
 function Style:GetSizeText(element,transform,text)
-    local w,h = element.font:getWidth(text)-1, element.font:getHeight()-1
+    local w,h = self:GetWidthText(element,text), self:GetHeightText(element,text)
     local x = self:GetAllignX(transform.x, w, transform.w, element.allignx, element.marginx)
     local y = self:GetAllignY(transform.y, h, transform.h, element.alligny, element.marginy)
     return x,y,w,h
 end
 function Style:GetWidthText(element,text)
     return element.font:getWidth(text)-1
+end
+function Style:GetHeightText(element,text)
+    return (element.font:getHeight()*self:LineCount(element,text))-1
 end
 
 function Style:GetSizeImage(element,transform,image,quad)
@@ -171,6 +178,16 @@ end
 
 --- Drawing ---------------------------------------------------------
 
+function Style:GetColor(element,color,opacity)
+    local r,g,b,a = unpack(color)
+    if element.color then
+        r,g,b,a = unpack(element.color)
+    end
+    a, opacity = a or 1, opacity or 1
+    a = a*opacity
+    return r,g,b,a
+end
+
 function Style:DrawBase(element,transform,data,varient,state,opacity)
     if (not data.variants) then return end
     if (not data.variants[varient]) then varient = 1 end
@@ -178,14 +195,11 @@ function Style:DrawBase(element,transform,data,varient,state,opacity)
 
     if data.type == "color" then
         local cornersize, cornersegments = self:Get(element,"cornersize",nil,0), self:Get(element,"cornersegments",nil,0)
-        local r,g,b,a = unpack(data.variants[varient][state])
-        a, opacity = a or 1, opacity or 1
-        a = a*opacity
-        love.graphics.setColor(r,g,b,a)
+        love.graphics.setColor(self:GetColor(element,data.variants[varient][state],opacity))
         love.graphics.rectangle("fill", transform.x, transform.y, transform.w, transform.h, cornersize, cornersize, cornersegments)
     elseif data.type == "image" then
         local batch = data.variants[varient][state]
-        love.graphics.setColor(1,1,1,opacity)
+        love.graphics.setColor(self:GetColor(element,{1,1,1,1},opacity))
         love.graphics.draw(batch, transform.x, transform.y)
     end
 end
@@ -197,10 +211,7 @@ function Style:DrawText(element,transform,data,varient,state,text,opacity)
 
     if data.type == "color" then
         love.graphics.setFont(element.font)
-        local r,g,b,a = unpack(data.variants[varient][state])
-        a, opacity = a or 1, opacity or 1
-        a = a*opacity
-        love.graphics.setColor(r,g,b,a)
+        love.graphics.setColor(self:GetColor(element,data.variants[varient][state],opacity))
         local x,y,_,_ = self:GetSizeText(element,transform,text)
         love.graphics.print(text, x, y)
     elseif data.type == "image" then
@@ -214,10 +225,7 @@ function Style:DrawImage(element,transform,data,varient,state,image,quad,opacity
     if (not data.variants[varient]) then return end
 
     if data.type == "color" then
-        local r,g,b,a = unpack(data.variants[varient][state])
-        a, opacity = a or 1, opacity or 1
-        a = a*opacity
-        love.graphics.setColor(r,g,b,a)
+        love.graphics.setColor(self:GetColor(element,data.variants[varient][state],opacity))
         local x,y,_,_ = self:GetSizeImage(element,transform,image,quad)
         if quad then
             love.graphics.draw(image, quad, x, y)
